@@ -6,11 +6,11 @@ const JWT = process.env.PINATA_JWT
 
 const pinFileToIPFS = async () => {
     const formData = new FormData();
-    const src = "./assets/<your img>.png";
+    const src = "./assets/nft-metadata.json";
     const file = fs.createReadStream(src)
     formData.append("file", file)
     const pinataMetadata = JSON.stringify({
-        name: "<your img name>",
+        name: "student applauding hands",
     });
     formData.append("pinataMetadata", pinataMetadata);
     const pinataOptions = JSON.stringify({

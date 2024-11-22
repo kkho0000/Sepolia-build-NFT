@@ -1,35 +1,40 @@
-require("dotenv").config()
-const RPC_URL = process.env.RPC_URL
-const PUBLIC_KEY = process.env.PUBLIC_KEY
-const PRIVATE_KEY = process.env.PRIVATE_KEY
-const { Web3 } = require("web3");
-const web3 = new Web3(RPC_URL)
+require("dotenv").config();
+const { ethers } = require("ethers");
+const fs = require("fs");
+const path = require("path");
 
-const contract = require("../artifacts/contracts/MyNFT.sol/MyNFT.json")
-console.log("ABI: ", JSON.stringify(contract.abi))
+// 连接到以太坊节点
+const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_URL);
 
-const contractAddress = "<your contract address>"
-const nftContract = new web3.eth.Contract(contract.abi, contractAddress)
-async function mintNFT(tokenURI) {
-    const nonce = await web3.eth.getTransactionCount(PUBLIC_KEY, "latest")
-    const tx = {
-        from: PUBLIC_KEY,
-        to: contractAddress,
-        nonce: nonce,
-        gas: 500000,
-        gasPrice: await web3.eth.getGasPrice(),
-        data: nftContract.methods.mintNFT(PUBLIC_KEY, tokenURI).encodeABI(),
+// 使用私钥创建钱包
+const privateKey = process.env.PRIVATE_KEY;
+const wallet = new ethers.Wallet(privateKey, provider);
+
+// 读取合约ABI和地址
+const contractABIPath = path.join(__dirname, "../artifacts/contracts/MyNFT.sol/MyNFT.json");
+const contractABI = JSON.parse(fs.readFileSync(contractABIPath, "utf8"));
+const contractAddress = "0xC4326B0D9531050Ec8bc54e7d641654A79C6BBFe"; // 部署后得到的合约地址
+
+// 创建合约实例
+const contract = new ethers.Contract(contractAddress, contractABI.abi, wallet);
+
+async function mintNFT(recipient, amount, data) {
+    try {
+        // 调用合约的mintNFT函数
+        const tx = await contract.mintNFT(recipient, amount, data);
+        console.log("Transaction hash:", tx.hash);
+
+        // 等待交易被确认
+        const receipt = await tx.wait();
+        console.log("Transaction confirmed:", receipt);
+    } catch (error) {
+        console.error("Error minting NFT:", error);
     }
-    const signPromise = web3.eth.accounts.signTransaction(tx, PRIVATE_KEY)
-    signPromise
-        .then((signedTx) => {
-            web3.eth.sendSignedTransaction(signedTx.rawTransaction)
-                .on("transactionHash", (hash) => {
-                    console.log("The Transaction Hash of the Contract deployed: ", hash)
-                })
-        })
-        .catch((error) => {
-            console.log("Promise failed:", error)
-        })
 }
-mintNFT("https://ipfs.io/ipfs/<your cid>")
+
+// 示例调用
+const recipient = process.env.PUBLIC_KEY; // 接收者的地址
+const amount = 1; // 铸造的数量
+const data = ethers.utils.toUtf8Bytes("Additional data"); // 示例数据
+
+mintNFT(recipient, amount, data);
