@@ -1,0 +1,2 @@
+console.log(txs);
+const txs = await ethers.provider.getHistory("0x6a7c1B4eF211A96Cfe57494732b43106aea8Ca4D")
